@@ -6,15 +6,6 @@ This module contains functionality to support the JIT's scripting frontend, nota
 This is not intended to be imported directly; please use the exposed
 functionalities in `torch.jit`.
 """
-
-#script 使用是在你需要的地方 (fuction or nn.Module (默认追踪 forward 函数))
-# 挂载装饰器torch.jit.script，其转换方式跟 trace 是完全不同的思路，
-# script 直接解析你的 PyTorch 代码，通过语法分析解析你的逻辑为一棵语法树，
-# 然后转换为中间表示 IR。
-
-#Note: 虽然其可以解决 trace 存在无法追踪动态逻辑的问题，
-# 但是 Python 作为灵活度极高的语法, 想完整支持解析各种 Python 操作几乎是不可能的，
-# 因此我们需要额外的时间熟悉哪些写法是可以被解析的，让我们写代码的体验大打折扣。
 import functools
 import collections
 import enum
@@ -993,18 +984,22 @@ def script(obj, optimize=None, _frames_up=0, _rcb=None):
             obj = obj.__original_fn
             _rcb = _jit_internal.createResolutionCallbackFromClosure(obj)
 
+        #检查重载
         _check_directly_compile_overloaded(obj)
         maybe_already_compiled_fn = _try_get_jit_cached_function(obj)
         if maybe_already_compiled_fn:
             return maybe_already_compiled_fn
+        #得到AST语法树
         ast = get_jit_def(obj, obj.__name__)
         if _rcb is None:
             _rcb = _jit_internal.createResolutionCallbackFromClosure(obj)
+        #c++ 入口，根据ast得到ir
         fn = torch._C._jit_script_compile(
             qualified_name, ast, _rcb, get_default_args(obj)
         )
         # Forward docstrings
         fn.__doc__ = obj.__doc__
+        #cache起来
         _set_jit_function_cache(obj, fn)
         return fn
 

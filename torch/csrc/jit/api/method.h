@@ -51,7 +51,7 @@ struct TORCH_API Method {
   size_t num_inputs() const {
     return function_->num_inputs();
   }
-
+  //GraphExecutor object创建于第一次执行的时候，负责优化
   GraphExecutor& get_executor() {
     return function_->get_executor();
   }

@@ -639,7 +639,7 @@ struct GraphExecutorImpl : public GraphExecutorImplBase {
       return r.first->second;
     }
   }
-
+  //返回一个plan
   ExecutionPlan compileSpec(const ArgumentSpec& spec) {
     auto opt_graph = graph->copy();
     GRAPH_DUMP("Optimizing the following function:", opt_graph);

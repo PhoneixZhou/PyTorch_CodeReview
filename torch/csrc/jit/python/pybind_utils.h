@@ -230,7 +230,7 @@ struct VISIBILITY_HIDDEN PythonFutureWrapper
 // not use AT_ERROR macros, since these macros add stack trace information
 // that is confusing to display to the end user since it always reports
 // locations in libtorch code rather than user code.
-
+// 发现只是wapper了下CompilationUnit
 inline std::shared_ptr<CompilationUnit> get_python_cu() {
   return py::module::import("torch.jit._state")
       .attr("_python_cu")

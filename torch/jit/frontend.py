@@ -5,6 +5,7 @@ import inspect
 import string
 from textwrap import dedent
 from typing import List
+#jit中定义的ast基本结构
 from torch._C._jit_tree_views import (
     ClassDef, Ident, Stmt, Decl, Def, Var,
     EmptyTypeAnnotation, Param, ExprStmt, Assign,
@@ -237,15 +238,20 @@ def get_jit_def(fn, def_name, self_name=None, is_classmethod=False):
             but we want the result AST to have the name "forward".
         self_name: If this function is a method, what the type name of `self` is.
     """
+    #得到源代码的一些信息
     sourcelines, file_lineno, filename = get_source_lines_and_file(fn, torch._C.ErrorReport.call_stack())
     sourcelines = normalize_source_lines(sourcelines)
     source = ''.join(sourcelines)
+    #dedent_src为包含了要script函数的字符串
     dedent_src = dedent(source)
+    #调用python ast包将字符串解析为python的ast
     py_ast = ast.parse(dedent_src)
     if len(py_ast.body) != 1 or not isinstance(py_ast.body[0], ast.FunctionDef):
         raise RuntimeError(f"Expected a single top-level function: {filename}:{file_lineno}")
     leading_whitespace_len = len(source.split('\n', 1)[0]) - len(dedent_src.split('\n', 1)[0])
+    #得到python类型注释
     type_line = torch.jit.annotations.get_type_line(source)
+    #ctx 中包含了函数所有原信息
     ctx = SourceContext(source, filename, file_lineno, leading_whitespace_len, True)
     fn_def = py_ast.body[0]
 
@@ -268,11 +274,13 @@ def get_jit_def(fn, def_name, self_name=None, is_classmethod=False):
             # Replace potentially unsupported type annotations by "Any"
             arg.annotation = unused_def.args.args[0].annotation
 
+    #build def 将python的ast 转化成torchjit使用的ast格式
     return build_def(ctx, fn_def, type_line, def_name, self_name=self_name)
 
 
 class Builder(object):
     def __call__(self, ctx, node):
+        #可见会根据解析出的ast的类型返回对应的build方法
         method = getattr(self, 'build_' + node.__class__.__name__, None)
         if method is None:
             raise UnsupportedNodeError(ctx, node)
@@ -420,6 +428,7 @@ class StmtBuilder(Builder):
 
     @staticmethod
     def build_Assign(ctx, stmt):
+        # build_expr是ExprBuilder的INSTANCE，其会调用`build_BinOp`
         rhs = build_expr(ctx, stmt.value)
         lhs = [build_expr(ctx, x) for x in stmt.targets]
         return Assign(lhs, rhs)
@@ -637,10 +646,11 @@ class ExprBuilder(Builder):
 
     @staticmethod
     def build_BinOp(ctx, expr):
+        #expr.left是个“Name”调用build_Name
         lhs = build_expr(ctx, expr.left)
         rhs = build_expr(ctx, expr.right)
         op = type(expr.op)
-
+        #转化为约定的代表运算类型的string符号
         if op == ast.Div and not ctx.uses_true_division:
             err_range = ctx.make_raw_range(lhs.range().end, rhs.range().start)
             raise FrontendError(err_range, 'Division of ints in TorchScript uses Python 3 true '

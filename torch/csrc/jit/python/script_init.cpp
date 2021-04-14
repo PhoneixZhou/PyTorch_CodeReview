@@ -378,7 +378,9 @@ static StrongFunctionPtr script_compile_function(
     const Def& def,
     const FunctionDefaults& defaults,
     const ResolutionCallback& rcb) {
+    //def 中包含ast
   auto cu = get_python_cu();
+  //看来是get_python_cu这个类中的define函数完成的
   auto defined_functions = cu->define(
       QualifiedName(name.prefix()),
       /*properties=*/{},

@@ -460,10 +460,12 @@ std::pair<std::shared_ptr<TracingState>, Stack> trace(
       AT_ERROR("Tracing can't be nested");
     }
     auto state = std::make_shared<TracingState>();
+    //setTracingState 将state这个实例set 下来，在之后计算节点get出来insert计算过程
     setTracingState(state);
 
     // if we are a module, then make sure the modules parameters are in the map
     // and mapped to accesses to the self object
+    //state这个数据结构会在forward过程中存储trace到的计算过程
     if (self) {
       Value* self_value = state->graph->insertInput(0, "self")->setType(
           self->_ivalue()->type());
@@ -492,11 +494,13 @@ std::pair<std::shared_ptr<TracingState>, Stack> trace(
 
     auto graph = state->graph;
 
+    //将python中变量名解析函数绑定下来
     getTracingState()->lookup_var_name_fn = std::move(var_name_lookup_fn);
     getTracingState()->strict = strict;
     getTracingState()->force_outplace = force_outplace;
 
     // Invoke the traced function
+    //开始forward,在计算发生时，会把计算记录到state中
     auto out_stack = traced_fn(inputs);
 
     // Exit a trace, treating 'out_stack' as the outputs of the trace.  These

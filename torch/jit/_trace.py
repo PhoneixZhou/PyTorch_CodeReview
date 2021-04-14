@@ -7,14 +7,6 @@ This module contains functionality to support the JIT's tracing frontend, notabl
 This is not intended to be imported directly; please use the exposed
 functionalities in `torch.jit`.
 """
-
-#这便是 trace 方法的使用，其核心实现的入口便是torch.jit.trace，
-# 参数为你需要导出的 model，以及合法输入 input，其大概原理恰如其名，
-# 便是跟踪模型 inference 过程，将模型对输入进行的操作逐一记录下来，
-# 并对应到 IR 的操作，从而得到原本模型 forward 的 IR。
-#ote：但是这种实现方式有很明显的缺陷，PyTorch 作为动态图网络，
-# 会有很多的 input dependent 的控制流语句，根据输入的不同可能会执行情况会不同(if 或者 变长的 loop)，
-# 这样就无法 trace 到完整的计算图。
 import torch
 
 import copy
@@ -736,7 +728,7 @@ def trace(
             "The input to trace is already a ScriptModule, tracing it is a no-op. Returning the object as is."
         )
         return func
-    #发现是nn.Module instance forward, 追踪forward
+
     if isinstance(func, torch.nn.Module):
         return trace_module(
             func,
@@ -749,7 +741,7 @@ def trace(
             _force_outplace,
             _module_class,
         )
-    #传进来的是某个module instance 的forward
+
     if (
         hasattr(func, "__self__")
         and isinstance(func.__self__, torch.nn.Module)
@@ -773,7 +765,7 @@ def trace(
     # done primarily so that weird iterables fail here and not pybind11 code
     elif not isinstance(example_inputs, tuple):
         example_inputs = tuple(example_inputs)
-    #一个查找变量名的接口
+
     var_lookup_fn = _create_interpreter_name_lookup_fn(0)
 
     if hasattr(func, "__self__") and isinstance(func.__self__, torch.nn.Module):
@@ -782,7 +774,6 @@ def trace(
             "Please use trace_module"
         )
 
-    #C++ 入口
     name = _qualified_name(func)
     traced = torch._C._create_function_from_trace(
         name,
@@ -795,7 +786,6 @@ def trace(
     )
 
     # Check the trace against new traces created from user-specified inputs
-    #检查traced 与 原func是否有差异
     if check_trace:
         if check_inputs is not None:
             _check_trace(

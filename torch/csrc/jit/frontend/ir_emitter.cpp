@@ -644,6 +644,7 @@ struct to_ir {
       throw ErrorReport(def.decl().params().range())
           << "methods must have a self argument";
     }
+    //emitDef会调用emitStatements
     method.setSchema(emitDef(def, self, graph->block()));
 
     // NB ORDERING: SSA conversion has to occur before
@@ -664,6 +665,7 @@ struct to_ir {
   }
 
  private:
+  //可以看到Graph Function这些我们之前介绍的IR的组成部分
   Function& method;
   std::shared_ptr<Graph> graph;
   ResolverPtr resolver;
@@ -1064,6 +1066,8 @@ struct to_ir {
     for (; begin != end; ++begin) {
       auto stmt = *begin;
       ErrorReport::CallStack::update_pending_range(stmt.range());
+      //根据stmt.kind(),会进入而各种emit里面，其中一定可以找到graph->insertNode(graph->create(.....));
+      //类似的操作，对应我们建立IR graph
       switch (stmt.kind()) {
         case TK_IF:
           emitIf(If(stmt));
@@ -4351,6 +4355,7 @@ std::unique_ptr<Function> CompilationUnit::define(
       call_name = atoms.at(atoms.size() - 2) + "." + atoms.at(atoms.size() - 1);
     }
     ErrorReport::CallStack call(call_name, def.range());
+    //核心代码 
     to_ir(def, _resolver, self, method);
   };
   auto name = prefix ? QualifiedName(*prefix, def.name().name())

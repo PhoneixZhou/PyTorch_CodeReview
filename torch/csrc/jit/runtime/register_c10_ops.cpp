@@ -15,6 +15,12 @@ namespace {
 // tracing here.
 // TODO This currently only handles tensors with requires_grad==False correctly.
 //      It should also handle autograd.
+//步骤：
+//1. 使用getTracingState()得到forward开始去创建的state;
+//2. 根据op.schema(),name()得到计算类型
+//3. 根据计算类型通过createNone方法创建一个计算节点
+//4. 创建计算输入
+//5. 计算node insert到graph中，完成一次对计算的记录
 Operator createOperatorFromC10_withTracingHandledHere(
     const c10::OperatorHandle& op) {
   return Operator(op, [op](Stack* stack) {
@@ -27,6 +33,7 @@ Operator createOperatorFromC10_withTracingHandledHere(
     // trace the input before unwrapping, otherwise we may lose
     // the input information
     if (jit::tracer::isTracing()) {
+      //获取tracer_state
       tracer_state = jit::tracer::getTracingState();
       auto symbol = Symbol::fromQualString(op.schema().name());
       const auto& graph = tracer::getTracingState()->graph;
@@ -34,6 +41,7 @@ Operator createOperatorFromC10_withTracingHandledHere(
       tracer::recordSourceLocation(node);
       const auto& args = op.schema().arguments();
       int i = 0;
+      //记录args
       for (auto iter = stack->end() - input_size; iter != stack->end();
            ++iter, ++i) {
         // TODO we need to refactor graph APIs (e.g., addInputs)
@@ -117,6 +125,7 @@ Operator createOperatorFromC10_withTracingHandledHere(
           throw std::runtime_error("unsupported input type: " + type->str());
         }
       }
+      //node嵌入graph
       graph->insertNode(node);
 
       jit::tracer::setTracingState(nullptr);
