@@ -26,6 +26,12 @@ constexpr int kUnsetDivFactor = -1;
 
 } // namespace
 
+//four main components
+//a. building parameter-to-bucket map
+//b. installing autograd hooks
+//c. launching bucket AllReduce
+//d. detecting globally unused parameters
+
 Reducer::Reducer(
     std::vector<std::vector<torch::autograd::Variable>> replicas,
     std::vector<std::vector<size_t>> bucket_indices,

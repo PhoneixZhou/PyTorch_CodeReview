@@ -341,11 +341,15 @@ class DistributedDataParallel(Module):
                        all-reduction. If ``None``, the default process group, which
                        is created by :func:`torch.distributed.init_process_group`,
                        will be used. (default: ``None``)
+                       specify a process group instance for DDP to run AllReduce, which
+                       helps to avoid messing up with the default process group.
         bucket_cap_mb: ``DistributedDataParallel`` will bucket parameters into
                        multiple buckets so that gradient reduction of each
                        bucket can potentially overlap with backward computation.
                        :attr:`bucket_cap_mb` controls the bucket size in
                        MegaBytes (MB). (default: 25)
+                       To control the AllReduce bucket size, where applications 
+                       should tune this knob to optimize training speed.
         find_unused_parameters (bool): Traverse the autograd graph from all
                                tensors contained in the return value of the
                                wrapped module's ``forward`` function. Parameters
@@ -360,6 +364,8 @@ class DistributedDataParallel(Module):
                                derived from module parameters that are otherwise
                                unused can be detached from the autograd graph
                                using ``torch.Tensor.detach``. (default: ``False``)
+                               To toggle whether DDP should detect unused parameters by
+                               traversing the autograd graph.
         check_reduction: This argument is deprecated.
         gradient_as_bucket_view (bool): This is a prototype feature and subject
                       to changes. When set to ``True``, gradients will be views
